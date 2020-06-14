@@ -41,11 +41,39 @@ insertDisease = do
   n <- getLine
   putStr "Virus: "
   v <- getLine
-  putStr "Symptoms: "
-  s <- getLine
+  -- add symptoms
+  s <- addSymptoms []
   putStr "Quarantine: "
   q <- getLine
-  appendFile "diseases.txt" (n ++ "\t" ++ v ++ "\t" ++ s ++ "\t" ++ q ++ "\n")
+  appendFile "data/diseases.txt" (n ++ "\t" ++ v ++ "\t" ++ join "," s ++ "\t" ++ q ++ "\n")
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertDisease else return ()
+
+-- insert new patient
+insertPatient :: IO ()
+insertPatient = do
+  putStr "Name: "
+  n <- getLine
+  -- add symptoms
+  s <- addSymptoms []
+  putStr "Consult date: "
+  d <- getLine
+  appendFile "data/patients.txt" (n ++ "\t" ++ join "," s ++ "\t" ++ d ++ "\n")
+  putStr "Insert another one? (y or n) "
+  resp <- getLine
+  if (resp == "y" || resp == "Y") then insertPatient else return ()
+
+-- add symptons
+addSymptoms :: Symptoms -> IO Symptoms
+addSymptoms list = do
+  putStr "Symptom: "
+  s <- getLine
+  let x = s : list
+  putStr "Insert another symptom? (y or n) "
+  resp <- getLine
+  if resp == "y" || resp == "Y"
+    then addSymptoms x
+    else return x
+
+join sep = foldr (\ a b -> a ++ if b == "" then b else sep ++ b) ""
