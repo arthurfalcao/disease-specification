@@ -1,3 +1,6 @@
+import Data.Time.Clock
+import Data.Time.Calendar
+
 type Name = String
 
 type Virus = String
@@ -6,7 +9,7 @@ type Symptoms = [String]
 
 type Quarantine = Bool
 
-type Date = (Int, Int, Int)
+type Date = (Integer, Int, Int)
 
 type EndDate = Date
 
@@ -57,9 +60,8 @@ insertPatient = do
   n <- getLine
   -- add symptoms
   s <- addSymptoms []
-  putStr "Consult date: "
-  d <- getLine
-  appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ d ++ "\n")
+  date <- utctDay <$> getCurrentTime
+  appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ show date ++ "\n")
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertPatient else return ()
@@ -86,6 +88,13 @@ loadDiseases = do
 printDiseases [] = ""
 printDiseases ((name, virus, symptoms, quarantine) : xs) = "Diseases- name= " ++ name ++ ", virus= " ++ virus ++ "\n" ++ (printDiseases xs)
 
+getPatients [] = []
+getPatients ([name, symptoms, consultDate] : xs) = (name, wordsWhen (=='-') symptoms, stringToDate $ wordsWhen (=='-') consultDate) : (getPatients xs)
+
+loadPatients = do
+  patients <- readFile "data/patients.txt"
+  return (getPatients (map words (lines patients)))
+
 -- utils
 wordsWhen     :: (Char -> Bool) -> String -> [String]
 wordsWhen p s =  case dropWhile p s of
@@ -94,6 +103,12 @@ wordsWhen p s =  case dropWhile p s of
                             where (w, s'') = break p s'
 
 join sep = foldr (\ a b -> a ++ if b == "" then b else sep ++ b) ""
+
+date :: IO Date -- :: (year, month, day)
+date = getCurrentTime >>= return . toGregorian . utctDay
+
+stringToDate :: [String] -> Date
+stringToDate [y,m,d] = (read y :: Integer, read m :: Int, read d :: Int)
 
 main :: IO ()
 main = do
