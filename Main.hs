@@ -45,7 +45,7 @@ insertDisease = do
   s <- addSymptoms []
   putStr "Quarantine: "
   q <- getLine
-  appendFile "data/diseases.txt" (n ++ "\t" ++ v ++ "\t" ++ join "," s ++ "\t" ++ q ++ "\n")
+  appendFile "data/diseases.txt" (n ++ "\t" ++ v ++ "\t" ++ join "-" s ++ "\t" ++ q ++ "\n")
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertDisease else return ()
@@ -59,25 +59,25 @@ insertPatient = do
   s <- addSymptoms []
   putStr "Consult date: "
   d <- getLine
-  appendFile "data/patients.txt" (n ++ "\t" ++ join "," s ++ "\t" ++ d ++ "\n")
+  appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ d ++ "\n")
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertPatient else return ()
 
 -- add symptons
 addSymptoms :: Symptoms -> IO Symptoms
-addSymptoms list = do
+addSymptoms xs = do
   putStr "Symptom: "
-  s <- getLine
-  let x = s : list
+  symptom <- getLine
+  let symptoms = xs ++ [symptom]
   putStr "Insert another symptom? (y or n) "
   resp <- getLine
   if resp == "y" || resp == "Y"
-    then addSymptoms x
-    else return x
+    then addSymptoms symptoms
+    else return symptoms
 
 getDiseases [] = []
-getDiseases ([name, virus, symptoms, quarantine] : xs) = (name, virus, wordsWhen (==',') symptoms, quarantine) : (getDiseases xs)
+getDiseases ([name, virus, symptoms, quarantine] : xs) = (name, virus, wordsWhen (=='-') symptoms, quarantine) : (getDiseases xs)
 
 loadDiseases = do
   diseases <- readFile "data/diseases.txt"
