@@ -76,4 +76,21 @@ addSymptoms list = do
     then addSymptoms x
     else return x
 
+getDiseases [] = []
+getDiseases ([name, virus, symptoms, quarantine] : xs) = (name, virus, wordsWhen (==',') symptoms, quarantine) : (getDiseases xs)
+
+loadDiseases = do
+  diseases <- readFile "data/diseases.txt"
+  return (getDiseases (map words (lines diseases)))
+
+printDiseases [] = ""
+printDiseases ((name, virus, symptoms, quarantine) : xs) = "Diseases- name= " ++ name ++ ", virus= " ++ virus ++ "\n" ++ (printDiseases xs)
+
+-- utils
+wordsWhen     :: (Char -> Bool) -> String -> [String]
+wordsWhen p s =  case dropWhile p s of
+                      "" -> []
+                      s' -> w : wordsWhen p s''
+                            where (w, s'') = break p s'
+
 join sep = foldr (\ a b -> a ++ if b == "" then b else sep ++ b) ""
