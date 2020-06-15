@@ -95,6 +95,13 @@ loadPatients = do
   patients <- readFile "data/patients.txt"
   return (getPatients (map words (lines patients)))
 
+getQuarantines [] = []
+getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, stringToDate $ wordsWhen (=='-') endDate, wordsWhen (=='-') connections) : (getQuarantines xs)
+
+loadQuarantines = do
+  quarantines <- readFile "data/quarantines.txt"
+  return (getQuarantines (map words (lines quarantines)))
+
 -- utils
 wordsWhen     :: (Char -> Bool) -> String -> [String]
 wordsWhen p s =  case dropWhile p s of
@@ -110,10 +117,17 @@ date = getCurrentTime >>= return . toGregorian . utctDay
 stringToDate :: [String] -> Date
 stringToDate [y,m,d] = (read y :: Integer, read m :: Int, read d :: Int)
 
+countQuarantinePatients [] = 0
+countQuarantinePatients (x:xs) = 1 + countQuarantinePatients xs
+
 main :: IO ()
 main = do
   putStrLn "1 - Insert a new disease"
   putStrLn "2 - insert a new patient"
+  putStrLn "3 - Find the patient's virus"
+  putStrLn "4 - Number of patients in quarantine"
+  putStrLn "5 - Current date"
+  putStrLn "6 - Generate graph of all connections"
   putStr "Option: "
   resp <- getLine
   if resp == "1"
@@ -121,7 +135,12 @@ main = do
     else
       if resp == "2"
         then insertPatient
-        else error "Wrong option"
+        else
+          if resp == "4"
+            then do
+              quarantines <- loadQuarantines
+              print $ countQuarantinePatients quarantines
+            else error "Wrong option"
   putStr "Want to continue? "
   resp <- getLine
   if resp == "y" || resp == "Y" then main else return ()
