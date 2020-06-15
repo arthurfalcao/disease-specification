@@ -94,3 +94,19 @@ wordsWhen p s =  case dropWhile p s of
                             where (w, s'') = break p s'
 
 join sep = foldr (\ a b -> a ++ if b == "" then b else sep ++ b) ""
+
+main :: IO ()
+main = do
+  putStrLn "1 - Insert a new disease"
+  putStrLn "2 - insert a new patient"
+  putStr "Option: "
+  resp <- getLine
+  if resp == "1"
+    then insertDisease
+    else
+      if resp == "2"
+        then insertPatient
+        else error "Wrong option"
+  putStr "Want to continue? "
+  resp <- getLine
+  if resp == "y" || resp == "Y" then main else return ()
