@@ -123,7 +123,7 @@ countQuarantinePatients (x:xs) = 1 + countQuarantinePatients xs
 main :: IO ()
 main = do
   putStrLn "1 - Insert a new disease"
-  putStrLn "2 - insert a new patient"
+  putStrLn "2 - Insert a new patient"
   putStrLn "3 - Find the patient's virus"
   putStrLn "4 - Number of patients in quarantine"
   putStrLn "5 - Current date"
@@ -136,11 +136,18 @@ main = do
       if resp == "2"
         then insertPatient
         else
-          if resp == "4"
+          if resp == "3"
             then do
-              quarantines <- loadQuarantines
-              print $ countQuarantinePatients quarantines
-            else error "Wrong option"
+              putStr "Patient name: "
+              patientName <- getLine
+              patients <- loadPatients
+              print $ findVirus patientName patients
+            else
+              if resp == "4"
+                then do
+                  quarantines <- loadQuarantines
+                  print $ countQuarantinePatients quarantines
+                else error "Wrong option"
   putStr "Want to continue? "
   resp <- getLine
   if resp == "y" || resp == "Y" then main else return ()
