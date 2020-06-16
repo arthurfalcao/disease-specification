@@ -131,12 +131,22 @@ findVirus name ((n, s, d) : xs) =
     then Just (n,s,d)
     else findVirus name xs
 
+findPatients :: Name -> [Patient] -> [Patient]
+findPatients p [] = []
+findPatients p xs = filter (\(n,s,c) -> n == p) xs
+
 findDiseases :: String -> [Disease] -> [Disease]
 findDiseases s [] = []
 findDiseases s xs = filter (\(n,v,x,q) -> elem s x && q == Yes) xs
 
 getDiseaseName :: Disease -> Name
 getDiseaseName (n, v, s, q) = n
+
+getDiseaseVirus :: Disease -> Virus
+getDiseaseVirus (n, v, s, q) = v
+
+getPatientSymptoms :: Patient -> Symptoms
+getPatientSymptoms (n, s, d) = s
 
 -- utils
 wordsWhen     :: (Char -> Bool) -> String -> [String]
@@ -176,8 +186,17 @@ main = do
             then do
               putStr "Patient name: "
               patientName <- getLine
-              patients <- loadPatients
-              print $ findVirus patientName patients
+              allPatients <- loadPatients
+              let patients = findPatients patientName allPatients
+              if null patients
+                then putStrLn "Patient not found"
+                else do
+                  diseases <- loadDiseases
+                  let symptoms = getPatientSymptoms $ head patients
+                  let ds = map (`findDiseases` diseases) symptoms
+                  if null ds
+                    then error "Disease not found"
+                    else print $ getDiseaseVirus $ head ds !! 0
             else
               if resp == "4"
                 then do
