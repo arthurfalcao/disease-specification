@@ -1,5 +1,6 @@
 import Data.Time.Clock
 import Data.Time.Calendar
+import Text.Printf
 
 type Name = String
 
@@ -48,7 +49,7 @@ insertDisease = do
   s <- addSymptoms []
   putStr "Quarantine: "
   q <- getLine
-  appendFile "data/diseases.txt" (n ++ "\t" ++ v ++ "\t" ++ join "-" s ++ "\t" ++ q ++ "\n")
+  appendFile "data/diseases.txt" $ printf "%s %s %s %s\n" n v (join "-" s) q
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertDisease else return ()
@@ -63,14 +64,13 @@ insertPatient = do
   date <- utctDay <$> getCurrentTime
   diseases <- loadDiseases
   let ds = map (`findDiseases` diseases) s
-  if length ds /= 0
-    then do
+  if null ds
+    then appendFile "data/patients.txt" $ printf "%s %s %s\n" n (join "-" s) (show date)
+    else do
       c <- addConnections []
       let disease = getDiseaseName $ (head ds) !! 0
-      appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ show date ++ "\n")
-      appendFile "data/quarantines.txt" (n ++ "\t" ++ disease ++ "\t" ++ show (addDays 40 date) ++ "\t" ++ join "-" c ++ "\n")
-    else
-      appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ show date ++ "\n")
+      appendFile "data/patients.txt" $ printf "%s %s %s\n" n (join "-" s) (show date)
+      appendFile "data/quarantines.txt" $ printf "%s %s %s %s\n" n disease (show $ addDays 40 date) (join "-" c)
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertPatient else return ()
