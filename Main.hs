@@ -1,3 +1,4 @@
+import System.IO
 import Data.Time.Clock
 import Data.Time.Calendar
 import Text.Printf
@@ -75,6 +76,17 @@ insertPatient = do
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertPatient else return ()
 
+updateQuarantine :: IO ()
+updateQuarantine = do
+  date <- utctDay <$> getCurrentTime
+  q <- loadQuarantines
+  let expiredQuarantines = filter (\(n,v,d,c) -> diffDays (read d :: Day) date >= 0) q
+  writeFile "data/quarantines.txt" $ save expiredQuarantines
+  return ()
+
+save [] = ""
+save ((n,v,d,c):xs) = n ++ "\t" ++ v ++ "\t" ++ d ++ "\t" ++ c ++ "\n" ++ save xs
+
 -- add connections
 addConnections :: Connections -> IO Connections
 addConnections xs = do
@@ -117,19 +129,11 @@ loadPatients = do
   return (getPatients (map words (lines patients)))
 
 getQuarantines [] = []
-getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, stringToDate $ wordsWhen (=='-') endDate, wordsWhen (=='-') connections) : (getQuarantines xs)
+getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, endDate, connections) : (getQuarantines xs)
 
 loadQuarantines = do
-  quarantines <- readFile "data/quarantines.txt"
+  quarantines <- readFile' "data/quarantines.txt"
   return (getQuarantines (map words (lines quarantines)))
-
--- TODO:
--- findVirus :: Name -> [Patient] -> Maybe Virus
-findVirus name [] = Nothing
-findVirus name ((n, s, d) : xs) =
-  if name == n
-    then Just (n,s,d)
-    else findVirus name xs
 
 findPatients :: Name -> [Patient] -> [Patient]
 findPatients p [] = []
@@ -163,6 +167,10 @@ date = getCurrentTime >>= return . toGregorian . utctDay
 stringToDate :: [String] -> Date
 stringToDate [y,m,d] = (read y :: Integer, read m :: Int, read d :: Int)
 
+readFile' filename = withFile filename ReadMode $ \handle -> do
+  theContent <- hGetContents handle
+  mapM return theContent
+
 countQuarantinePatients [] = 0
 countQuarantinePatients (x:xs) = 1 + countQuarantinePatients xs
 
@@ -172,7 +180,7 @@ main = do
   putStrLn "2 - Insert a new patient"
   putStrLn "3 - Find the patient's virus"
   putStrLn "4 - Number of patients in quarantine"
-  putStrLn "5 - Current date"
+  putStrLn "5 - Update the quarantine by the current date"
   putStrLn "6 - Generate graph of all connections"
   putStr "Option: "
   resp <- getLine
@@ -202,7 +210,10 @@ main = do
                 then do
                   quarantines <- loadQuarantines
                   print $ countQuarantinePatients quarantines
-                else error "Wrong option"
+                else
+                  if resp == "6"
+                    then updateQuarantine
+                    else error "Wrong option"
   putStr "Want to continue? "
   resp <- getLine
   if resp == "y" || resp == "Y" then main else return ()
