@@ -64,12 +64,12 @@ insertPatient = do
   s <- addSymptoms []
   date <- utctDay <$> getCurrentTime
   diseases <- loadDiseases
-  let ds = map (`findDiseases` diseases) s
+  let ds = head $ map (`findDiseases` diseases) s
   if null ds
     then appendFile "data/patients.txt" $ printf "%s %s %s\n" n (join "-" s) (show date)
     else do
       c <- addConnections []
-      let disease = getDiseaseName $ (head ds) !! 0
+      let disease = getDiseaseName $ head ds
       appendFile "data/patients.txt" $ printf "%s %s %s\n" n (join "-" s) (show date)
       appendFile "data/quarantines.txt" $ printf "%s %s %s %s\n" n disease (show $ addDays 40 date) (join "-" c)
   putStr "Insert another one? (y or n) "
@@ -140,8 +140,7 @@ findPatients p [] = []
 findPatients p xs = filter (\(n,s,c) -> n == p) xs
 
 findDiseases :: String -> [Disease] -> [Disease]
-findDiseases s [] = []
-findDiseases s xs = filter (\(n,v,x,q) -> elem s x && q == Yes) xs
+findDiseases s = filter (\ (n, v, x, q) -> elem s x && q == Yes)
 
 getDiseaseName :: Disease -> Name
 getDiseaseName (n, v, s, q) = n
