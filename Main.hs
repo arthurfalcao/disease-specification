@@ -211,7 +211,7 @@ main = do
                   quarantines <- loadQuarantines
                   print $ countQuarantinePatients quarantines
                 else
-                  if resp == "6"
+                  if resp == "5"
                     then updateQuarantine
                     else error "Wrong option"
   putStr "Want to continue? "
