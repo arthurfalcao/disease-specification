@@ -84,6 +84,16 @@ updateQuarantine = do
   writeFile "data/quarantines.txt" $ save expiredQuarantines
   return ()
 
+generateGraph :: IO ()
+generateGraph = do
+  q <- loadQuarantines
+  let connections = map (\(n,v,d,c) -> (n, wordsWhen (=='-') c)) q
+  writeFile "data/connections.dot" $ graph connections
+
+graph list = printf "Digraph{ %s }\n" $ unwords $ map code list
+
+code (n, c) = unwords $ map (printf "\"%s\" -> \"%s\"\n" n) c
+
 save [] = ""
 save ((n,v,d,c):xs) = n ++ "\t" ++ v ++ "\t" ++ d ++ "\t" ++ c ++ "\n" ++ save xs
 
@@ -212,7 +222,10 @@ main = do
                 else
                   if resp == "5"
                     then updateQuarantine
-                    else error "Wrong option"
+                    else
+                      if resp == "6"
+                        then generateGraph
+                        else error "Wrong option"
   putStr "Want to continue? "
   resp <- getLine
   if resp == "y" || resp == "Y" then main else return ()
