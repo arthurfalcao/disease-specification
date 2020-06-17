@@ -23,22 +23,6 @@ type Patient = (Name, Symptoms, Date)
 
 type PatientQuarantine = (Name, String, EndDate, Connections)
 
-listDiseases :: [Disease]
-listDiseases =
-  [ ("hepatiteA", "picorna", ["icterícia", "fadiga", "febre", "mialgia"], No),
-    ("covid_19", "corona", ["tosse", "fadiga", "febre", "dispneia"], Yes),
-    ("sarampo", "paramyxo", ["manchas", "erup¸c~oes", "tosse", "febre"], Yes)
-  ]
-
-listPatients :: [Patient]
-listPatients =
-  [ ("Joao", ["tosse", "dispneia"], (2020, 4, 2)),
-    ("Ana", ["icterícia", "mialgia"], (2020, 4, 8))
-  ]
-
-listQuarantine :: [PatientQuarantine]
-listQuarantine = [("Joao", "covid_19", (2020, 5, 25), ["Maria", "Peter"])]
-
 -- insert new disease
 insertDisease :: IO ()
 insertDisease = do
