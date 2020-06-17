@@ -1,5 +1,7 @@
+import System.IO
 import Data.Time.Clock
 import Data.Time.Calendar
+import Text.Printf
 
 type Name = String
 
@@ -48,7 +50,7 @@ insertDisease = do
   s <- addSymptoms []
   putStr "Quarantine: "
   q <- getLine
-  appendFile "data/diseases.txt" (n ++ "\t" ++ v ++ "\t" ++ join "-" s ++ "\t" ++ q ++ "\n")
+  appendFile "data/diseases.txt" $ printf "%s %s %s %s\n" n v (join "-" s) q
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertDisease else return ()
@@ -63,17 +65,27 @@ insertPatient = do
   date <- utctDay <$> getCurrentTime
   diseases <- loadDiseases
   let ds = map (`findDiseases` diseases) s
-  if length ds /= 0
-    then do
+  if null ds
+    then appendFile "data/patients.txt" $ printf "%s %s %s\n" n (join "-" s) (show date)
+    else do
       c <- addConnections []
       let disease = getDiseaseName $ (head ds) !! 0
-      appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ show date ++ "\n")
-      appendFile "data/quarantines.txt" (n ++ "\t" ++ disease ++ "\t" ++ show (addDays 40 date) ++ "\t" ++ join "-" c ++ "\n")
-    else
-      appendFile "data/patients.txt" (n ++ "\t" ++ join "-" s ++ "\t" ++ show date ++ "\n")
+      appendFile "data/patients.txt" $ printf "%s %s %s\n" n (join "-" s) (show date)
+      appendFile "data/quarantines.txt" $ printf "%s %s %s %s\n" n disease (show $ addDays 40 date) (join "-" c)
   putStr "Insert another one? (y or n) "
   resp <- getLine
   if (resp == "y" || resp == "Y") then insertPatient else return ()
+
+updateQuarantine :: IO ()
+updateQuarantine = do
+  date <- utctDay <$> getCurrentTime
+  q <- loadQuarantines
+  let expiredQuarantines = filter (\(n,v,d,c) -> diffDays (read d :: Day) date >= 0) q
+  writeFile "data/quarantines.txt" $ save expiredQuarantines
+  return ()
+
+save [] = ""
+save ((n,v,d,c):xs) = n ++ "\t" ++ v ++ "\t" ++ d ++ "\t" ++ c ++ "\n" ++ save xs
 
 -- add connections
 addConnections :: Connections -> IO Connections
@@ -117,19 +129,11 @@ loadPatients = do
   return (getPatients (map words (lines patients)))
 
 getQuarantines [] = []
-getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, stringToDate $ wordsWhen (=='-') endDate, wordsWhen (=='-') connections) : (getQuarantines xs)
+getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, endDate, connections) : (getQuarantines xs)
 
 loadQuarantines = do
-  quarantines <- readFile "data/quarantines.txt"
+  quarantines <- readFile' "data/quarantines.txt"
   return (getQuarantines (map words (lines quarantines)))
-
--- TODO:
--- findVirus :: Name -> [Patient] -> Maybe Virus
-findVirus name [] = Nothing
-findVirus name ((n, s, d) : xs) =
-  if name == n
-    then Just (n,s,d)
-    else findVirus name xs
 
 findPatients :: Name -> [Patient] -> [Patient]
 findPatients p [] = []
@@ -163,6 +167,10 @@ date = getCurrentTime >>= return . toGregorian . utctDay
 stringToDate :: [String] -> Date
 stringToDate [y,m,d] = (read y :: Integer, read m :: Int, read d :: Int)
 
+readFile' filename = withFile filename ReadMode $ \handle -> do
+  theContent <- hGetContents handle
+  mapM return theContent
+
 countQuarantinePatients [] = 0
 countQuarantinePatients (x:xs) = 1 + countQuarantinePatients xs
 
@@ -172,7 +180,7 @@ main = do
   putStrLn "2 - Insert a new patient"
   putStrLn "3 - Find the patient's virus"
   putStrLn "4 - Number of patients in quarantine"
-  putStrLn "5 - Current date"
+  putStrLn "5 - Update the quarantine by the current date"
   putStrLn "6 - Generate graph of all connections"
   putStr "Option: "
   resp <- getLine
@@ -202,7 +210,10 @@ main = do
                 then do
                   quarantines <- loadQuarantines
                   print $ countQuarantinePatients quarantines
-                else error "Wrong option"
+                else
+                  if resp == "5"
+                    then updateQuarantine
+                    else error "Wrong option"
   putStr "Want to continue? "
   resp <- getLine
   if resp == "y" || resp == "Y" then main else return ()
