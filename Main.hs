@@ -32,14 +32,13 @@ insertDisease = do
   n <- getLine
   putStr "Virus: "
   v <- getLine
-  -- add symptoms
   s <- addSymptoms []
   putStr "Quarantine: "
   q <- getLine
   appendFile "data/diseases.txt" $ printf "%s %s %s %s\n" n v (join "-" s) q
   putStr "Insert another one? (y or n) "
   resp <- getLine
-  if (resp == "y" || resp == "Y") then insertDisease else return ()
+  if resp == "y" || resp == "Y" then insertDisease else return ()
 
 -- insert new patient
 insertPatient :: IO ()
@@ -60,7 +59,7 @@ insertPatient = do
       appendFile "data/quarantines.txt" $ printf "%s %s %s %s\n" n disease (show $ addDays 40 date) (join "-" c)
   putStr "Insert another one? (y or n) "
   resp <- getLine
-  if (resp == "y" || resp == "Y") then insertPatient else return ()
+  if resp == "y" || resp == "Y" then insertPatient else return ()
 
 updateQuarantine :: IO ()
 updateQuarantine = do
@@ -108,35 +107,35 @@ addSymptoms xs = do
     else return symptoms
 
 getDiseases [] = []
-getDiseases ([name, virus, symptoms, quarantine] : xs) = (name, virus, wordsWhen (=='-') symptoms, read quarantine :: Quarantine) : (getDiseases xs)
+getDiseases ([name, virus, symptoms, quarantine] : xs) = (name, virus, wordsWhen (=='-') symptoms, read quarantine :: Quarantine) : getDiseases xs
 
 loadDiseases = do
   diseases <- readFile "data/diseases.txt"
-  return (getDiseases (map words (lines diseases)))
+  return $ getDiseases $ map words $ lines diseases
 
 printDiseases [] = ""
-printDiseases ((name, virus, symptoms, quarantine) : xs) = "Diseases- name= " ++ name ++ ", virus= " ++ virus ++ "\n" ++ (printDiseases xs)
+printDiseases ((name, virus, symptoms, quarantine) : xs) = "Diseases- name= " ++ name ++ ", virus= " ++ virus ++ "\n" ++ printDiseases xs
 
 getPatients [] = []
-getPatients ([name, symptoms, consultDate] : xs) = (name, wordsWhen (=='-') symptoms, stringToDate $ wordsWhen (=='-') consultDate) : (getPatients xs)
+getPatients ([name, symptoms, consultDate] : xs) = (name, wordsWhen (=='-') symptoms, stringToDate $ wordsWhen (=='-') consultDate) : getPatients xs
 
 loadPatients = do
   patients <- readFile "data/patients.txt"
-  return (getPatients (map words (lines patients)))
+  return $ getPatients $ map words $ lines patients
 
 getQuarantines [] = []
-getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, endDate, connections) : (getQuarantines xs)
+getQuarantines ([name, disease, endDate, connections] : xs) = (name, disease, endDate, connections) : getQuarantines xs
 
 loadQuarantines = do
   quarantines <- readFile' "data/quarantines.txt"
-  return (getQuarantines (map words (lines quarantines)))
+  return $ getQuarantines $ map words $ lines quarantines
 
 findPatients :: Name -> [Patient] -> [Patient]
 findPatients p [] = []
 findPatients p xs = filter (\(n,s,c) -> n == p) xs
 
 findDiseases :: String -> [Disease] -> [Disease]
-findDiseases s = filter (\ (n, v, x, q) -> elem s x && q == Yes)
+findDiseases s = filter (\ (n, v, x, q) -> s `elem` x && q == Yes)
 
 getDiseaseName :: Disease -> Name
 getDiseaseName (n, v, s, q) = n
@@ -157,7 +156,7 @@ wordsWhen p s =  case dropWhile p s of
 join sep = foldr (\ a b -> a ++ if b == "" then b else sep ++ b) ""
 
 date :: IO Date -- :: (year, month, day)
-date = getCurrentTime >>= return . toGregorian . utctDay
+date = toGregorian . utctDay <$> getCurrentTime
 
 stringToDate :: [String] -> Date
 stringToDate [y,m,d] = (read y :: Integer, read m :: Int, read d :: Int)
@@ -167,7 +166,7 @@ readFile' filename = withFile filename ReadMode $ \handle -> do
   mapM return theContent
 
 countQuarantinePatients [] = 0
-countQuarantinePatients (x:xs) = 1 + countQuarantinePatients xs
+countQuarantinePatients xs = foldr (\ x -> (+) 1) 0 xs
 
 main :: IO ()
 main = do
@@ -199,7 +198,7 @@ main = do
                   let ds = map (`findDiseases` diseases) symptoms
                   if null ds
                     then error "Disease not found"
-                    else print $ getDiseaseVirus $ head ds !! 0
+                    else print $ getDiseaseVirus $ head $ head ds
             else
               if resp == "4"
                 then do
