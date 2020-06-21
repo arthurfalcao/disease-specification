@@ -1,5 +1,6 @@
 module DiseaseSpecification where
 
+import Control.Monad
 import Data.Time.Calendar
 import Data.Time.Clock
 import System.IO
@@ -38,12 +39,10 @@ insertDisease = do
   s <- addSymptoms []
   putStr "Quarantine: "
   q <- getLine
-  appendFile "data/diseases.txt" $ printf "%s %s %s %s\n" n v (join "-" s) q
+  appendFile "data/diseases.txt" $ printf "%s %s %s %s\n" n v (join' "-" s) q
   putStr "Insert another one? (y or n) "
   resp <- getLine
-  if resp == "y" || resp == "Y"
-    then insertDisease
-    else return ()
+  when (resp == "y" || resp == "Y") insertDisease
 
 -- insert new patient
 insertPatient :: IO ()
@@ -57,19 +56,17 @@ insertPatient = do
   let ds = head $ map (`findDiseases` diseases) s
   if null ds
     then appendFile "data/patients.txt" $
-         printf "%s %s %s\n" n (join "-" s) (show date)
+         printf "%s %s %s\n" n (join' "-" s) (show date)
     else do
       c <- addConnections []
       let disease = getDiseaseName $ head ds
       appendFile "data/patients.txt" $
-        printf "%s %s %s\n" n (join "-" s) (show date)
+        printf "%s %s %s\n" n (join' "-" s) (show date)
       appendFile "data/quarantines.txt" $
-        printf "%s %s %s %s\n" n disease (show $ addDays 40 date) (join "-" c)
+        printf "%s %s %s %s\n" n disease (show $ addDays 40 date) (join' "-" c)
   putStr "Insert another one? (y or n) "
   resp <- getLine
-  if resp == "y" || resp == "Y"
-    then insertPatient
-    else return ()
+  when (resp == "y" || resp == "Y") insertPatient
 
 updateQuarantine :: IO ()
 updateQuarantine = do
@@ -174,7 +171,7 @@ wordsWhen p s =
     s' -> w : wordsWhen p s''
       where (w, s'') = break p s'
 
-join sep =
+join' sep =
   foldr
     (\a b ->
        a ++
@@ -237,6 +234,4 @@ main = do
                                        else error "Wrong option"
   putStr "Want to continue? "
   resp <- getLine
-  if resp == "y" || resp == "Y"
-    then main
-    else return ()
+  when (resp == "y" || resp == "Y") main
