@@ -1,3 +1,5 @@
+module DiseaseSpecification where
+
 import System.IO
 import Data.Time.Clock
 import Data.Time.Calendar
